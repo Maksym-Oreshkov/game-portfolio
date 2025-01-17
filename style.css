@@ -195,6 +195,33 @@ h2 {
   padding-left: 44vh;
 }
 
+.inventory-items {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: center;
+  text-align: center;
+  top: 30%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #00000090;
+  width: 100%;
+  height: 20%;
+}
+
+.inv-items {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  justify-content: center;
+}
+
+#inv-item {
+  color: #fff;
+}
+
 .menu {
   position: fixed;
   display: flex;
