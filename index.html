@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Game</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  </head>
+  <body>
+    <div class="app">
+      <section class="main-section">
+        <div class="sideHelp hidden">
+          <h1 class="sideInfo"></h1>
+        </div>
+        <div id="blur-container">
+          <div id="game">
+            <img
+              id="hero-stand"
+              class="hero"
+              src="assets/hero-stand.gif"
+              alt="Hero Standing"
+            />
+            <img
+              id="hero-run-right"
+              class="hero hidden"
+              src="assets/hero-run-right.gif"
+              alt="Hero Running Right"
+            />
+            <img
+              id="hero-run-left"
+              class="hero hidden"
+              src="assets/hero-run-left.gif"
+              alt="Hero Running Left"
+            />
+            <img
+              id="hero-right-punch"
+              class="hero hidden"
+              src="assets/hero-punch.gif"
+              alt="Hero Punching Right"
+            />
+            <img
+              id="enemy"
+              class="character"
+              src="assets/enemy-stand.gif"
+              alt="Enemy Character"
+            />
+            <img
+              id="shop"
+              class="buildings"
+              src="assets/shop2.svg"
+              alt="shop"
+            />
+          </div>
+
+          <div id="tooltip" class="hidden">Press ← and → for walk</div>
+          <div id="tooltip2" class="hidden">Press SHIFT for run</div>
+          <div id="tooltip3" class="hidden">Press ENTER ⚔️</div>
+          <div id="tooltip4" class="hidden">Press ENTER 🫳🏻</div>
+          <div id="tooltip5" class="hidden">Press I to open 👝</div>
+
+          <img id="chestGif" src="assets/chest_closed.png" alt="chest" />
+        </div>
+
+        <div id="shop-inside" class="hidden"></div>
+
+        <div id="inventory" class="hidden">
+          <div class="stats">
+            <h1 class="hero-name">Gra'marh</h1>
+            <h2 id="hero-attack">⚔️ Attack - 5</h2>
+            <h2 id="hero-hp">❤️ Hp - 15</h2>
+            <h2 id="hero-gold">💰 Gold - 0</h2>
+          </div>
+          <!--         <div class="eqipment">
+          <div class="weapon">
+            <img id="fist" class="weapon" src="assets/fist1.svg" alt="item" />
+          </div>
+          <div class="armor"></div>
+        </div> -->
+
+          <img
+            class="hero-inventory"
+            src="assets/hero-stand.gif"
+            alt="Hero Standing"
+          />
+        </div>
+
+        <div class="menu">
+          <ul class="menu__list">
+            <li class="menu__item">
+              <a href class="options">OPTIONS</a>
+            </li>
+            <li class="menu__item">
+              <a href class="restart">RESTART GAME</a>
+            </li>
+          </ul>
+        </div>
+
+        <div id="fight-mode" class="hidden">
+          <div class="arena1">
+            <img
+              id="hero-tactic"
+              class="hero"
+              src="assets/hero-stand.gif"
+              alt="Hero Standing"
+            />
+            <img
+              id="hero-right-punch-tactic"
+              class="hero hidden"
+              src="assets/hero-punch.gif"
+              alt="Hero Punching Right"
+            />
+            <img
+              id="enemy-tactic"
+              class="character"
+              src="assets/enemy-stand.gif"
+              alt="Enemy Character"
+            />
+            <img
+              id="enemy-attack"
+              class="character hidden"
+              src="assets/enemy-attack.gif"
+              alt="Enemy Character"
+            />
+          </div>
+          <div class="fight-inform">
+            <div class="fight-log"></div>
+            <div id="hero-hp-tactic"></div>
+          </div>
+
+          <button id="attackBtn">Атаковать</button>
+        </div>
+        <canvas
+          id="rainCanvas"
+          style="position: fixed; top: 0; left: 0; z-index: 100"
+        ></canvas>
+      </section>
+    </div>
+    <script src="script.js"></script>
+  </body>
+</html>
