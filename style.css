@@ -396,11 +396,7 @@ h2 {
   display: flex;
   flex-direction: column;
   bottom: 26vh;
-<<<<<<< HEAD
   left: -25%;
-=======
-  left: -100px;
->>>>>>> 7850b7ad9883b4cf620ec1d184d4c838efa61120
   background-color: rgba(0, 0, 0, 0.617);
   z-index: 2;
   padding: 10px;

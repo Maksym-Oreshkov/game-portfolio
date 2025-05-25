@@ -459,7 +459,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       const emptyItem = document.createElement("div");
       emptyItem.className = "inv-item";
-      emptyItem.textContent = "Empty";
+      emptyItem.textContent = "Пусто";
       invItemsContainer.appendChild(emptyItem);
     }
   }
