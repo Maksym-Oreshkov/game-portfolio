@@ -339,7 +339,7 @@ h2 {
   display: flex;
   flex-direction: column;
   bottom: 26vh;
-  left: -300px;
+  left: -100px;
   background-color: rgba(0, 0, 0, 0.617);
   z-index: 2;
 }

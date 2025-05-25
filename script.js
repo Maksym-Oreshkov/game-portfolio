@@ -256,9 +256,9 @@ document.addEventListener("DOMContentLoaded", () => {
       heroStats.potions += 1;
       updateInventory();
       setLocalStorage();
-      showShopMessage("Эликсир куплен!", "success");
+      showShopMessage("The elixir has been purchased!", "success");
     } else {
-      showShopMessage("Недостаточно золота!", "error");
+      showShopMessage("Not enough gold!", "error");
     }
   });
 
@@ -453,7 +453,7 @@ document.addEventListener("DOMContentLoaded", () => {
       for (let i = 0; i < heroStats.potions; i++) {
         const potionItem = document.createElement("div");
         potionItem.className = "inv-item";
-        potionItem.textContent = `🧪 Эликсир здоровья`;
+        potionItem.textContent = `🧪 elixir of health`;
         invItemsContainer.appendChild(potionItem);
       }
     } else {
@@ -532,7 +532,7 @@ document.addEventListener("DOMContentLoaded", () => {
     heroStats.hp = Math.min(heroStats.hp + healAmount, heroStats.maxHp);
 
     displayFightLog(
-      `${heroStats.name} выпил эликсир и восстановил ${healAmount} HP!`
+      `${heroStats.name} drank the elixir and was restored ${healAmount} HP!`
     );
     updateInventory();
 
@@ -562,7 +562,7 @@ document.addEventListener("DOMContentLoaded", () => {
     enemyStats.hp -= magicDamage;
 
     displayFightLog(
-      `${heroStats.name} использовал магию и нанес ${magicDamage} урона!`
+      `${heroStats.name} used magic and inflicted ${magicDamage} урона!`
     );
 
     setTimeout(() => {
@@ -610,13 +610,13 @@ document.addEventListener("DOMContentLoaded", () => {
     shieldBtn.disabled = false;
     magicBtn.disabled = heroStats.mana < 30;
 
-    displayFightLog("Бой начался!");
+    displayFightLog("The fight has begun!");
     startHeroTurn();
   }
 
   function startHeroTurn() {
     heroTurn = true;
-    displayFightLog(`${heroStats.name}, ваш ход!`);
+    displayFightLog(`${heroStats.name}, your turn!`);
 
     heroStandTc.classList.remove("hidden");
     heroPunchTc.classList.add("hidden");
@@ -645,7 +645,7 @@ document.addEventListener("DOMContentLoaded", () => {
       enemyStats.hp -= heroRandomAttack;
 
       displayFightLog(
-        `${heroStats.name} атакует ${enemyStats.name} и наносит ${heroRandomAttack} урона.`
+        `${heroStats.name} attacks ${enemyStats.name} and deals ${heroRandomAttack} damage.`
       );
 
       // Возврат на место
@@ -654,7 +654,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }, 300);
 
       if (enemyStats.hp <= 0) {
-        displayFightLog(`${enemyStats.name} побеждён!`);
+        displayFightLog(`${enemyStats.name} defeated!`);
         endFight(true);
         return;
       }
@@ -675,7 +675,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Если щит активен, урон уменьшается вдвое
     if (shieldActive) {
       enemyRandomAttack = Math.floor(enemyRandomAttack / 2);
-      displayFightLog(`Щит поглотил часть урона!`);
+      displayFightLog(`The shield absorbed some of the damage!`);
     }
 
     // Отталкивание героя через 2 секунды
@@ -684,7 +684,7 @@ document.addEventListener("DOMContentLoaded", () => {
       heroStats.hp -= enemyRandomAttack;
 
       displayFightLog(
-        `${enemyStats.name} атакует ${heroStats.name} и наносит ${enemyRandomAttack} урона.`
+        `${enemyStats.name} attacks ${heroStats.name} and deals ${enemyRandomAttack} damage.`
       );
 
       // Возврат на место
@@ -694,7 +694,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (heroStats.hp <= 0) {
         setTimeout(() => {
-          displayFightLog(`${heroStats.name} повержен...`);
+          displayFightLog(`${heroStats.name} defeated...`);
           endFight(false);
         }, 1000);
         return;
