@@ -40,6 +40,7 @@ html {
   bottom: 180px;
   width: 400px;
   z-index: 3;
+  transition: transform 0.3s ease-out;
 }
 
 .hero-inventory {
@@ -69,7 +70,7 @@ html {
 }
 
 #shop-inside {
-  position: fixed; /* Изменено на fixed, чтобы инвентарь был вне потока и не размывался */
+  position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -97,6 +98,12 @@ html {
   display: flex;
   flex-direction: column;
   text-align: center;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.hp-item:hover {
+  transform: scale(1.1);
 }
 
 .hp {
@@ -109,6 +116,24 @@ html {
 
 .h2-shop {
   color: #fff;
+}
+
+.item-price {
+  color: #ffd700;
+  font-weight: bold;
+}
+
+.shop-message {
+  position: absolute;
+  top: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #fff;
+  background-color: rgba(0, 0, 0, 0.8);
+  padding: 10px 20px;
+  border-radius: 5px;
+  font-size: 20px;
+  display: none;
 }
 
 #chestGif {
@@ -151,20 +176,20 @@ html {
 }
 
 .blur-background {
-  filter: blur(12px); /* Применение размытия ко всему контейнеру */
+  filter: blur(12px);
 }
 
 #inventory {
-  position: fixed; /* Изменено на fixed, чтобы инвентарь был вне потока и не размывался */
+  position: fixed;
   top: 50%;
   left: 50%;
   width: 53vh;
   height: 84vh;
   background: url("/assets/inventory.jpg") center / cover no-repeat;
-  z-index: 1001; /* Задано значение выше, чем у размытого фона */
+  z-index: 1001;
   background-color: rgba(255, 255, 255, 0.2);
   transform: translate(-50%, -50%);
-  display: none; /* Скрыт по умолчанию */
+  display: none;
 }
 
 .hero-name {
@@ -216,10 +241,19 @@ h2 {
   flex-direction: row;
   gap: 10px;
   justify-content: center;
+  flex-wrap: wrap;
 }
 
-#inv-item {
+.inv-item {
   color: #fff;
+  padding: 5px 10px;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.inv-item:hover {
+  background-color: rgba(255, 255, 255, 0.4);
 }
 
 .menu {
@@ -236,7 +270,7 @@ h2 {
   transform: translate(-50%, -50%);
   border-radius: 10px;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-  display: none; /* Скрыт по умолчанию */
+  display: none;
 }
 
 .menu__list {
@@ -282,12 +316,17 @@ h2 {
 }
 
 #fight-mode {
-  position: fixed; /* Изменено на fixed, чтобы инвентарь был вне потока и не размывался */
+  position: fixed;
   width: 100vh;
   height: 100vh;
   background: url("/assets/arena1.svg") left / cover no-repeat;
   z-index: 2005;
-  display: none; /* Скрыт по умолчанию */
+  display: none;
+  transition: background-color 0.5s ease;
+}
+
+#fight-mode.magic-effect {
+  background-color: rgba(0, 0, 0, 0.8);
 }
 
 .arena1 {
@@ -305,6 +344,7 @@ h2 {
   left: 10vh;
   height: auto;
   z-index: 4;
+  transition: transform 0.3s ease-out;
 }
 
 #enemy-tactic,
@@ -315,6 +355,15 @@ h2 {
   width: 50vh;
   height: auto;
   z-index: 2;
+  transition: transform 0.3s ease-out;
+}
+
+.hero-knockback {
+  transform: translateX(-30px);
+}
+
+.enemy-knockback {
+  transform: translateX(30px);
 }
 
 .fight-inform {
@@ -323,15 +372,23 @@ h2 {
   flex-direction: column;
 }
 
-#hero-hp-tactic {
+#hero-hp-tactic,
+#hero-mana-tactic {
   position: absolute;
   display: flex;
   flex-direction: row;
-
   bottom: 16vh;
   left: 17vh;
   background-color: antiquewhite;
   z-index: 2;
+  padding: 5px 10px;
+  border-radius: 5px;
+}
+
+#hero-mana-tactic {
+  bottom: 12vh;
+  background-color: #4169e1;
+  color: white;
 }
 
 .fight-log {
@@ -339,15 +396,83 @@ h2 {
   display: flex;
   flex-direction: column;
   bottom: 26vh;
-  left: -300px;
+  left: -25%;
   background-color: rgba(0, 0, 0, 0.617);
   z-index: 2;
+  padding: 10px;
+  max-height: 200px;
+  overflow-y: auto;
+  width: 250px;
 }
 
-#attackBtn {
+.fight-actions {
   position: absolute;
-  bottom: 20vh;
+  bottom: 5vh;
   left: 17vh;
+  display: flex;
+  gap: 10px;
+}
+
+.fight-actions button {
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  background-color: #4a4a4a;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  transition: background-color 0.3s;
+}
+
+.fight-actions button:hover:not(:disabled) {
+  background-color: #666;
+}
+
+.fight-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#potionBtn {
+  background-color: #ff6b6b;
+}
+
+#potionBtn:hover:not(:disabled) {
+  background-color: #ff5252;
+}
+
+#shieldBtn {
+  background-color: #4ecdc4;
+}
+
+#shieldBtn:hover:not(:disabled) {
+  background-color: #45b7aa;
+}
+
+#magicBtn {
+  background-color: #7950f2;
+}
+
+#magicBtn:hover:not(:disabled) {
+  background-color: #6741d9;
+}
+
+.shield-active {
+  box-shadow: 0 0 20px 5px rgba(78, 205, 196, 0.8);
+}
+
+.magic-animation {
+  animation: magicPulse 1s ease-in-out;
+}
+
+@keyframes magicPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
 }
 
 p {
