@@ -11,8 +11,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const enemyTc = document.getElementById("enemy-tactic");
   const enemyAtkTc = document.getElementById("enemy-attack");
   const game = document.getElementById("game");
-  /*   const tooltip = document.getElementById("tooltip");
-  const tooltip2 = document.getElementById("tooltip2"); */
   const tooltip3 = document.getElementById("tooltip3");
   const tooltip4 = document.getElementById("tooltip4");
   const tooltip5 = document.getElementById("tooltip5");
@@ -27,13 +25,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const sideHelpElement = document.querySelector(".sideHelp");
   const fightMode = document.getElementById("fight-mode");
   const fightLog = document.querySelector(".fight-log");
+  const shopMessage = document.querySelector(".shop-message");
+  const invItemsContainer = document.getElementById("inv-items-container");
 
-  let heroX = 0; // Начальная позиция героя слева
-  let hasWeapon = false; // Изначально герой без оружия
+  // Новые элементы для боевой системы
+  const potionBtn = document.getElementById("potionBtn");
+  const shieldBtn = document.getElementById("shieldBtn");
+  const magicBtn = document.getElementById("magicBtn");
+
+  let heroX = 0;
+  let hasWeapon = false;
 
   const baseSpeed = 5;
   let heroSpeed = baseSpeed;
-  const sprintSpeed = 9;
+  const sprintSpeed = 8;
 
   let movingRight = false;
   let movingLeft = false;
@@ -42,13 +47,13 @@ document.addEventListener("DOMContentLoaded", () => {
   let backgroundX = 0;
 
   const viewportWidth = window.innerWidth;
-  const maxBackgroundX = -4000; // Максимальное значение background-position-x
+  const maxBackgroundX = -4000;
 
-  const punchSound = new Audio("audio/punch-sound.mp3"); // Звук удара
-  const runSound = new Audio("audio/running.mp3"); // Звук бега
+  const punchSound = new Audio("audio/punch-sound.mp3");
+  const runSound = new Audio("audio/running.mp3");
   const mainAudio = new Audio("audio/main.mp3");
 
-  runSound.loop = true; // Зацикливаем звук бега
+  runSound.loop = true;
 
   let minDistance = 600;
   let maxDistance = 4000;
@@ -57,18 +62,43 @@ document.addEventListener("DOMContentLoaded", () => {
     return Math.trunc(Math.random() * (max - min + 100) + min);
   }
 
-  let randomEnemyPlace = getRandomPlace(minDistance, maxDistance); // рандомное местоположение противника
-  let randomItemPlace = getRandomPlace(minDistance, maxDistance); // рандомное местоположение предмета
-  let randomShopePlace = getRandomPlace(minDistance, maxDistance); // рандомное местоположение предмета
+  let randomEnemyPlace = getRandomPlace(minDistance, maxDistance);
+  let randomItemPlace = getRandomPlace(minDistance, maxDistance);
+  let randomShopePlace = getRandomPlace(minDistance, maxDistance);
 
-  const enemyX = getRandomPlace(minDistance, maxDistance); // Позиция врага относительно фона
-  const itemX = getRandomPlace(minDistance, maxDistance); // Позиция предмета относительно фона
-  const shopX = getRandomPlace(minDistance, maxDistance); // Позиция врага относительно фона
+  const enemyX = getRandomPlace(minDistance, maxDistance);
+  const itemX = getRandomPlace(minDistance, maxDistance);
+  const shopX = getRandomPlace(minDistance, maxDistance);
 
-  /*   let tooltipHidden = false;
-  let tooltip2Hidden = false; */
   let tooltip3Hidden = false;
-  let tooltip4Hidden = false; // Флаг для отслеживания скрытия tooltip4
+  let tooltip4Hidden = false;
+
+  // Статистика игрока
+  const heroStats = {
+    name: "Gra'marh",
+    attack: 5,
+    hp: 15,
+    maxHp: 15,
+    gold: 0,
+    mana: 100,
+    maxMana: 100,
+    potions: 0,
+  };
+
+  // Статистика врага
+  const enemyStats = {
+    name: "Darkling",
+    attack: 3,
+    hp: 20,
+    maxHp: 20,
+  };
+
+  // Боевые переменные
+  let heroTurn = false;
+  let isInFightMode = false;
+  let potionUsedInBattle = false;
+  let shieldActive = false;
+  let magicSpellsUsed = 0;
 
   function moveHero() {
     if (movingRight && !punching) {
@@ -89,7 +119,6 @@ document.addEventListener("DOMContentLoaded", () => {
       showHero("left");
     }
 
-    // Ограничиваем движение героя в пределах видимой области экрана
     heroX = Math.max(heroX, 0);
     heroX = Math.min(heroX, viewportWidth - heroStand.width);
 
@@ -98,7 +127,6 @@ document.addEventListener("DOMContentLoaded", () => {
     heroRunLeft.style.left = `${heroX}px`;
     heroRightPunch.style.left = `${heroX}px`;
 
-    // Обновляем позицию врага/вещи/здания относительно фона
     const enemyViewportX = enemyX + backgroundX;
     enemy.style.left = `${enemyViewportX}px`;
 
@@ -108,13 +136,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const shopViewportX = shopX + backgroundX;
     shop.style.left = `${shopViewportX}px`;
 
-    // Проверяем положение для показа подсказок
-    /*    checkTooltipPosition();
-    checkTooltip2Position(); */
     checkTooltip3Position();
     checkTooltip4Position();
 
-    // Проверяем столкновение
     checkItemProximity();
     checkEnemyProximity();
     checkShopProximity();
@@ -122,31 +146,8 @@ document.addEventListener("DOMContentLoaded", () => {
     requestAnimationFrame(moveHero);
   }
 
-  function checkTooltipPosition() {
-    if (tooltipHidden) return;
-    const tooltipPositionX = 0; // Задайте здесь нужную позицию для показа первой подсказки
-
-    if (heroX >= tooltipPositionX && heroX <= tooltipPositionX + 100) {
-      tooltip.classList.remove("hidden");
-    } else {
-      tooltip.classList.add("hidden");
-    }
-  }
-
-  function checkTooltip2Position() {
-    if (tooltip2Hidden) return;
-    const tooltip2PositionX = 200; // Задайте здесь нужную позицию для показа второй подсказки
-
-    if (heroX >= tooltip2PositionX && heroX <= tooltip2PositionX + 200) {
-      tooltip2.classList.remove("hidden");
-    } else {
-      tooltip2.classList.add("hidden");
-    }
-  }
-
   function checkTooltip3Position() {
-    if (tooltip3Hidden) return; // Не показываем подсказку, если она была скрыта
-    // Вычисляем позицию третьей подсказки относительно текущего положения фона
+    if (tooltip3Hidden) return;
     const tooltip3PositionX = enemyX + backgroundX - 200;
 
     if (heroX >= tooltip3PositionX && heroX <= tooltip3PositionX + 200) {
@@ -157,7 +158,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function checkTooltip4Position() {
-    if (tooltip4Hidden) return; // Не показываем подсказку, если она была скрыта
+    if (tooltip4Hidden) return;
 
     const tooltip4PositionX = itemX + backgroundX - 300;
 
@@ -172,7 +173,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const heroRect = heroStand.getBoundingClientRect();
     const itemRect = chestGif.getBoundingClientRect();
 
-    // Проверяем, находиться ли герой и предмет рядом
     return (
       heroRect.right > itemRect.left &&
       heroRect.left < itemRect.right &&
@@ -185,7 +185,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const heroRect = heroStand.getBoundingClientRect();
     const enemyRect = enemy.getBoundingClientRect();
 
-    // Проверяем, находиться ли герой и враг рядом
     return (
       heroRect.right > enemyRect.left &&
       heroRect.left < enemyRect.right &&
@@ -198,7 +197,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const heroRect = heroStand.getBoundingClientRect();
     const shopRect = shop.getBoundingClientRect();
 
-    // Проверяем, находиться ли герой и враг рядом
     return (
       heroRect.right > shopRect.left &&
       heroRect.left < shopRect.right &&
@@ -227,14 +225,14 @@ document.addEventListener("DOMContentLoaded", () => {
   function punchHero() {
     if (!punching) {
       punching = true;
-      punchSound.play(); // Проигрывание звука удара
+      punchSound.play();
       showHero("punch");
       setTimeout(() => {
         punching = false;
         if (!movingRight && !movingLeft) {
           showHero("stand");
         }
-      }, 500); // Длительность анимации удара
+      }, 500);
     }
   }
 
@@ -251,6 +249,28 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // Обработчики магазина
+  document.querySelector(".hp-item").addEventListener("click", function () {
+    if (heroStats.gold >= 100) {
+      heroStats.gold -= 100;
+      heroStats.potions += 1;
+      updateInventory();
+      setLocalStorage();
+      showShopMessage("Эликсир куплен!", "success");
+    } else {
+      showShopMessage("Недостаточно золота!", "error");
+    }
+  });
+
+  function showShopMessage(message, type) {
+    shopMessage.textContent = message;
+    shopMessage.style.color = type === "success" ? "#4CAF50" : "#f44336";
+    shopMessage.style.display = "block";
+    setTimeout(() => {
+      shopMessage.style.display = "none";
+    }, 2000);
+  }
+
   document.addEventListener("keydown", (e) => {
     if (isInFightMode && e.key !== "Escape") {
       return;
@@ -258,7 +278,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (e.key === "Shift") {
       heroSpeed = sprintSpeed;
-      /*       tooltip2.classList.add("hidden"); */
     }
 
     if (e.key === "ArrowRight" || e.key === "Right") {
@@ -277,12 +296,12 @@ document.addEventListener("DOMContentLoaded", () => {
       punchHero();
     } else if (e.key === "Enter") {
       if (checkEnemyProximity()) {
-        isInFightMode = true; // Включаем режим боя
+        isInFightMode = true;
         tooltip3.classList.add("hidden");
         tooltip3Hidden = true;
-        /*         mainAudio.play(); */
+        mainAudio.play();
         fightMode.style.display = "block";
-        blurContainer.classList.add("blur-background"); // Добавление размытия фона
+        blurContainer.classList.add("blur-background");
         startFight();
       }
     }
@@ -295,14 +314,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (e.key === "Shift") {
       heroSpeed = baseSpeed;
-      /*       tooltip2Hidden = true; */
     }
 
     if (e.key === "ArrowRight" || e.key === "Right") {
       movingRight = false;
       if (!movingLeft) {
         stopRunSound();
-        /*         tooltipHidden = true; */
       }
     } else if (e.key === "ArrowLeft" || e.key === "Left") {
       movingLeft = false;
@@ -316,7 +333,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Вызов панели ИНВЕНТАРЯ
   document.addEventListener("keydown", function (e) {
     if (
       (e.key === "i" || e.key === "I" || e.key === "ш" || e.key === "Ш") &&
@@ -327,15 +343,14 @@ document.addEventListener("DOMContentLoaded", () => {
         inventory.style.display === ""
       ) {
         inventory.style.display = "block";
-        blurContainer.classList.add("blur-background"); // Добавление размытия фона
+        blurContainer.classList.add("blur-background");
       } else {
         inventory.style.display = "none";
-        blurContainer.classList.remove("blur-background"); // Удаление размытия фона
+        blurContainer.classList.remove("blur-background");
       }
     }
   });
 
-  // Вызов панели МЕНЮ
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape" || e.key === "esc") {
       const isAnyMenuOpen =
@@ -346,46 +361,36 @@ document.addEventListener("DOMContentLoaded", () => {
         showMenu.style.display = "none";
         inventory.style.display = "none";
         insideShop.style.display = "none";
-        blurContainer.classList.remove("blur-background"); // Удаление размытия фона
+        blurContainer.classList.remove("blur-background");
       } else {
         showMenu.style.display = "block";
-        blurContainer.classList.add("blur-background"); // Добавление размытия фона
+        blurContainer.classList.add("blur-background");
       }
     }
   });
 
-  // Функция отображения информации
   function renderSideInfo(amount) {
-    // Обновляем содержимое элемента sideInfo
     sideInfoElement.textContent = `💰 +${amount} Gold`;
-    sideHelpElement.style.display = "block"; // Показываем элемент
+    sideHelpElement.style.display = "block";
 
-    // Скрываем элемент через несколько секунд (например, через 3 секунды)
     setTimeout(() => {
-      sideHelpElement.style.display = "none"; // Скрываем элемент напрямую
-    }, 3000); // 3000 миллисекунд = 3 секунды
+      sideHelpElement.style.display = "none";
+    }, 3000);
   }
 
-  // Сундук
-
-  // Флаг, показывающий, открыт ли сундук
   let isChestOpen = false;
 
   document.addEventListener("keydown", function (e) {
-    // Если нажата клавиша Enter
     if (e.key === "Enter") {
-      // Если сундук ещё не открыт и игрок находится рядом
       if (!isChestOpen && checkItemProximity()) {
         tooltip4.classList.add("hidden");
         tooltip4Hidden = true;
         openChest();
 
-        // Сразу делаем сундук недоступным для дальнейших открытий
         isChestOpen = true;
         setTimeout(() => {
           addGold(100);
         }, 1000);
-        // Прячем сундук через 2 секунды
         setTimeout(() => {
           chestGif.classList.add("hidden");
         }, 2000);
@@ -397,12 +402,6 @@ document.addEventListener("DOMContentLoaded", () => {
     chestGif.src = "assets/chest_opened.gif";
   }
 
-  /*  function closeChest() {
-    chestGif.src = "assets/chest_closed.png";
-    isChestOpen = false;
-  } */
-
-  // Магазин
   document.addEventListener("keydown", function (e) {
     if (e.key === "Enter" && !isInFightMode) {
       if (checkShopProximity()) {
@@ -411,62 +410,75 @@ document.addEventListener("DOMContentLoaded", () => {
           insideShop.style.display === ""
         ) {
           insideShop.style.display = "block";
-          blurContainer.classList.add("blur-background"); // Добавление размытия фона
+          blurContainer.classList.add("blur-background");
         } else {
           insideShop.style.display = "none";
-          blurContainer.classList.remove("blur-background"); // Удаление размытия фона
+          blurContainer.classList.remove("blur-background");
         }
       }
     }
   });
 
-  // Статистика игрока
-  const heroStats = {
-    name: "Gra'marh",
-    attack: 5,
-    hp: 15,
-    gold: 0,
-  };
-
-  // Статистика врага
-  const enemyStats = {
-    name: "Darkling",
-    attack: 3,
-    hp: 20,
-  };
-
-  // Функция для обновления инвентаря
   function updateInventory() {
     document.getElementById(
       "hero-attack"
     ).textContent = `⚔️ Attack - ${heroStats.attack}`;
-    document.getElementById("hero-hp").textContent = `❤️ Hp - ${heroStats.hp}`;
+    document.getElementById(
+      "hero-hp"
+    ).textContent = `❤️ Hp - ${heroStats.hp}/${heroStats.maxHp}`;
     document.getElementById(
       "hero-hp-tactic"
-    ).textContent = `❤️ Hp - ${heroStats.hp}`;
+    ).textContent = `❤️ Hp - ${heroStats.hp}/${heroStats.maxHp}`;
     document.getElementById(
       "hero-gold"
     ).textContent = `💰 Gold - ${heroStats.gold}`;
+    document.getElementById(
+      "hero-mana"
+    ).textContent = `✨ Mana - ${heroStats.mana}/${heroStats.maxMana}`;
+    document.getElementById(
+      "hero-mana-tactic"
+    ).textContent = `✨ Mana - ${heroStats.mana}/${heroStats.maxMana}`;
+    document.getElementById(
+      "hero-potions"
+    ).textContent = `🧪 Potions - ${heroStats.potions}`;
+
+    // Обновляем инвентарь
+    updateInventoryDisplay();
   }
 
-  // Функция, которая добавляет золото при открытии сундука
+  function updateInventoryDisplay() {
+    invItemsContainer.innerHTML = "";
+
+    if (heroStats.potions > 0) {
+      for (let i = 0; i < heroStats.potions; i++) {
+        const potionItem = document.createElement("div");
+        potionItem.className = "inv-item";
+        potionItem.textContent = `🧪 Эликсир здоровья`;
+        invItemsContainer.appendChild(potionItem);
+      }
+    } else {
+      const emptyItem = document.createElement("div");
+      emptyItem.className = "inv-item";
+      emptyItem.textContent = "Пусто";
+      invItemsContainer.appendChild(emptyItem);
+    }
+  }
+
   function addGold(amount) {
     heroStats.gold += amount;
-    updateInventory(); // Обновляем инвентарь после изменения данных героя
+    updateInventory();
     setLocalStorage();
     renderSideInfo(amount);
   }
 
-  // хранение данных игрока
   function setLocalStorage() {
     localStorage.setItem("heroStats", JSON.stringify(heroStats));
   }
-  // Функция для загрузки данных игрока
+
   function getLocalStorage() {
     const data = localStorage.getItem("heroStats");
     if (data) {
       Object.assign(heroStats, JSON.parse(data));
-      /*       console.log(heroStats); */
       updateInventory();
     } else {
       console.log("No data found in localStorage");
@@ -478,31 +490,109 @@ document.addEventListener("DOMContentLoaded", () => {
     location.reload();
   });
 
-  // Бой
-
-  // Покажет, сейчас ли ход героя
-  let heroTurn = false;
-  // Покажет, находимся ли мы в режиме боя
-  let isInFightMode = false;
-
-  // При нажатии на кнопку «Атаковать» — герой бьёт (если сейчас его ход)
+  // Боевая система
   attackBtn.addEventListener("click", () => {
     if (heroTurn && isInFightMode) {
       heroAttack();
     }
   });
 
-  // Функция рандомного удара героя
+  potionBtn.addEventListener("click", () => {
+    if (
+      heroTurn &&
+      isInFightMode &&
+      !potionUsedInBattle &&
+      heroStats.potions > 0
+    ) {
+      usePotion();
+    }
+  });
+
+  shieldBtn.addEventListener("click", () => {
+    if (heroTurn && isInFightMode && !shieldActive) {
+      activateShield();
+    }
+  });
+
+  magicBtn.addEventListener("click", () => {
+    if (
+      heroTurn &&
+      isInFightMode &&
+      magicSpellsUsed < 2 &&
+      heroStats.mana >= 30
+    ) {
+      castMagic();
+    }
+  });
+
+  function usePotion() {
+    potionUsedInBattle = true;
+    heroStats.potions--;
+    const healAmount = 50;
+    heroStats.hp = Math.min(heroStats.hp + healAmount, heroStats.maxHp);
+
+    displayFightLog(
+      `${heroStats.name} выпил эликсир и восстановил ${healAmount} HP!`
+    );
+    updateInventory();
+
+    potionBtn.disabled = true;
+
+    setTimeout(enemyAttack, 1000);
+  }
+
+  function activateShield() {
+    shieldActive = true;
+    shieldBtn.disabled = true;
+
+    heroStandTc.classList.add("shield-active");
+    displayFightLog(`${heroStats.name} поднял щит!`);
+
+    setTimeout(enemyAttack, 1000);
+  }
+
+  function castMagic() {
+    magicSpellsUsed++;
+    heroStats.mana -= 30;
+
+    fightMode.classList.add("magic-effect");
+    heroStandTc.classList.add("magic-animation");
+
+    const magicDamage = Math.floor(Math.random() * 10 + 10);
+    enemyStats.hp -= magicDamage;
+
+    displayFightLog(
+      `${heroStats.name} использовал магию и нанес ${magicDamage} урона!`
+    );
+
+    setTimeout(() => {
+      fightMode.classList.remove("magic-effect");
+      heroStandTc.classList.remove("magic-animation");
+    }, 1000);
+
+    if (enemyStats.hp <= 0) {
+      displayFightLog(`${enemyStats.name} побеждён!`);
+      endFight(true);
+      return;
+    }
+
+    updateInventory();
+
+    if (magicSpellsUsed >= 2) {
+      magicBtn.disabled = true;
+    }
+
+    setTimeout(enemyAttack, 1500);
+  }
+
   function getHeroRandomAttack() {
     return Math.trunc(Math.random() * (heroStats.attack + 1));
   }
 
-  // Функция рандомного удара врага
   function getEnemyRandomAttack() {
     return Math.trunc(Math.random() * (enemyStats.attack + 1));
   }
 
-  // Функция начала боя
   function startFight() {
     fightMode.classList.remove("hidden");
     fightMode.style.display = "block";
@@ -510,132 +600,140 @@ document.addEventListener("DOMContentLoaded", () => {
     blurContainer.classList.add("blur-background");
     isInFightMode = true;
 
+    // Сброс боевых переменных
+    potionUsedInBattle = false;
+    shieldActive = false;
+    magicSpellsUsed = 0;
+
+    // Включаем/выключаем кнопки
+    potionBtn.disabled = heroStats.potions === 0;
+    shieldBtn.disabled = false;
+    magicBtn.disabled = heroStats.mana < 30;
+
     displayFightLog("Бой начался!");
-    // Сразу даём ход герою
     startHeroTurn();
   }
 
-  // Ход героя: ждём нажатия кнопки (бесконечно, пока не нажмут)
   function startHeroTurn() {
     heroTurn = true;
     displayFightLog(`${heroStats.name}, ваш ход!`);
 
-    // Для наглядности переключим анимации (герой в стойке, враг ничего не делает)
     heroStandTc.classList.remove("hidden");
     heroPunchTc.classList.add("hidden");
     enemyTc.classList.remove("hidden");
     enemyAtkTc.classList.add("hidden");
+
+    if (shieldActive) {
+      shieldActive = false;
+      heroStandTc.classList.remove("shield-active");
+    }
   }
 
-  // Собственно удар героя
   function heroAttack() {
-    // Герой уже сделал удар
     heroTurn = false;
 
     const heroRandomAttack = getHeroRandomAttack();
-    enemyStats.hp -= heroRandomAttack;
 
-    // Переключим анимацию
     heroStandTc.classList.add("hidden");
     heroPunchTc.classList.remove("hidden");
     enemyTc.classList.remove("hidden");
     enemyAtkTc.classList.add("hidden");
 
-    displayFightLog(
-      `${heroStats.name} атакует ${enemyStats.name} и наносит ${heroRandomAttack} урона.`
-    );
+    // Отталкивание противника через 1 секунду
+    setTimeout(() => {
+      enemyTc.classList.add("enemy-knockback");
+      enemyStats.hp -= heroRandomAttack;
 
-    // Проверяем, жив ли враг
-    if (enemyStats.hp <= 0) {
-      displayFightLog(`${enemyStats.name} побеждён!`);
-      endFight(true);
-      return;
-    }
+      displayFightLog(
+        `${heroStats.name} атакует ${enemyStats.name} и наносит ${heroRandomAttack} урона.`
+      );
 
-    // Обновляем статы (hp, атака, и т.д.)
-    updateInventory();
+      // Возврат на место
+      setTimeout(() => {
+        enemyTc.classList.remove("enemy-knockback");
+      }, 300);
 
-    // Переход хода к врагу
-    setTimeout(enemyAttack, 1000); // Немного задержим, чтобы анимация удара отобразилась
+      if (enemyStats.hp <= 0) {
+        displayFightLog(`${enemyStats.name} побеждён!`);
+        endFight(true);
+        return;
+      }
+
+      updateInventory();
+      setTimeout(enemyAttack, 500);
+    }, 1000);
   }
 
-  // Ход врага (автоматический)
   function enemyAttack() {
-    // Переключим анимацию
     heroStandTc.classList.remove("hidden");
     heroPunchTc.classList.add("hidden");
     enemyTc.classList.add("hidden");
     enemyAtkTc.classList.remove("hidden");
 
-    const enemyRandomAttack = getEnemyRandomAttack();
-    heroStats.hp -= enemyRandomAttack;
+    let enemyRandomAttack = getEnemyRandomAttack();
 
-    displayFightLog(
-      `${enemyStats.name} атакует ${heroStats.name} и наносит ${enemyRandomAttack} урона.`
-    );
-
-    // Проверяем, жив ли герой
-    if (heroStats.hp <= 0) {
-      displayFightLog(`${heroStats.name} повержен...`);
-      endFight(false);
-      return;
+    // Если щит активен, урон уменьшается вдвое
+    if (shieldActive) {
+      enemyRandomAttack = Math.floor(enemyRandomAttack / 2);
+      displayFightLog(`Щит поглотил часть урона!`);
     }
 
-    // Обновляем статы
-    updateInventory();
+    // Отталкивание героя через 2 секунды
+    setTimeout(() => {
+      heroStandTc.classList.add("hero-knockback");
+      heroStats.hp -= enemyRandomAttack;
 
-    // Возвращаем ход герою
-    setTimeout(startHeroTurn, 1000);
+      displayFightLog(
+        `${enemyStats.name} атакует ${heroStats.name} и наносит ${enemyRandomAttack} урона.`
+      );
+
+      // Возврат на место
+      setTimeout(() => {
+        heroStandTc.classList.remove("hero-knockback");
+      }, 300);
+
+      if (heroStats.hp <= 0) {
+        setTimeout(() => {
+          displayFightLog(`${heroStats.name} повержен...`);
+          endFight(false);
+        }, 1000);
+        return;
+      }
+
+      updateInventory();
+      setTimeout(startHeroTurn, 500);
+    }, 2000);
   }
 
-  // Функция для отображения логов боя
   function displayFightLog(message) {
     const newLog = document.createElement("p");
     newLog.textContent = message;
     fightLog.appendChild(newLog);
-    fightLog.scrollTop = fightLog.scrollHeight; // Прокручиваем лог вниз
+    fightLog.scrollTop = fightLog.scrollHeight;
   }
 
-  // Функция завершения боя
   function endFight(heroWon) {
     isInFightMode = false;
 
     if (heroWon) {
-      addGold(50); // Награда за победу
+      addGold(50);
+      // Восстанавливаем немного маны после победы
+      heroStats.mana = Math.min(heroStats.mana + 20, heroStats.maxMana);
     } else {
-      location.reload(); // Или своя логика
+      location.reload();
     }
 
     fightMode.classList.add("hidden");
     fightMode.style.display = "none";
     enemy.style.display = "none";
     blurContainer.classList.remove("blur-background");
-    mainAudio.pause(); // Если была музыка
+    mainAudio.pause();
+
+    // Очищаем лог боя
+    fightLog.innerHTML = "";
   }
 
-  // Функция для обновления интерфейса, статов и т.д.
-  // Здесь обязательно выводи hp героя (и, если хочешь, hp врага)
-  function updateInventory() {
-    document.getElementById(
-      "hero-attack"
-    ).textContent = `⚔️ Attack - ${heroStats.attack}`;
-    document.getElementById("hero-hp").textContent = `❤️ Hp - ${heroStats.hp}`;
-    document.getElementById(
-      "hero-hp-tactic"
-    ).textContent = `❤️ Hp - ${heroStats.hp}`;
-    document.getElementById(
-      "hero-gold"
-    ).textContent = `💰 Gold - ${heroStats.gold}`;
-
-    // Если есть элемент для отображения hp врага, добавьте что-то вроде:
-    // document.getElementById("enemy-hp").textContent = `❤️ Hp - ${enemyStats.hp}`;
-  }
-
-  // Пример инициализации (вызов любых функций, которые у тебя были)
-  // чтобы герой появился и т.д.
   moveHero();
   showHero("stand");
-
-  // Сохраняем и загружаем данные при запуске
   getLocalStorage();
 });

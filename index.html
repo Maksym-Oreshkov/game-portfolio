@@ -4,9 +4,490 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Game</title>
-    <link rel="stylesheet" href="style.css" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <style>
+      *,
+      ::after,
+      ::before {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html {
+        background-color: #000000;
+      }
+
+      .app {
+        position: relative;
+        display: flex;
+        justify-content: center;
+      }
+      .main-section {
+        position: fixed;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 1000px;
+        width: 100%;
+
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+
+      #game {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        background: url("/assets/location.jpg") left / cover no-repeat;
+      }
+
+      .hero {
+        position: absolute;
+        bottom: 180px;
+        width: 400px;
+        z-index: 3;
+        transition: transform 0.3s ease-out;
+      }
+
+      .hero-inventory {
+        position: absolute;
+        bottom: 14vh;
+        right: 5vh;
+        width: 40vh;
+
+        z-index: 3;
+      }
+      #enemy {
+        position: absolute;
+        bottom: 150px;
+        right: 0;
+        width: 500px;
+        height: auto;
+        z-index: 2;
+      }
+
+      #shop {
+        position: absolute;
+        bottom: 300px;
+        right: 0;
+        width: 600px;
+        height: auto;
+        z-index: 1;
+      }
+
+      #shop-inside {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: url("/assets/inside-shop.svg") center / cover no-repeat;
+        height: 90vh;
+        width: 90vh;
+        z-index: 1000;
+      }
+
+      .items {
+        position: relative;
+        display: flex;
+        flex-direction: row;
+        gap: 10px;
+        justify-content: center;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: #000000cf;
+        width: 80%;
+        height: 20%;
+      }
+
+      .hp-item {
+        display: flex;
+        flex-direction: column;
+        text-align: center;
+        cursor: pointer;
+        transition: transform 0.2s;
+      }
+
+      .hp-item:hover {
+        transform: scale(1.1);
+      }
+
+      .hp {
+        width: 100%;
+        height: 100%;
+        background: url(/assets/hp.svg) no-repeat center center;
+        background-size: contain;
+        cursor: pointer;
+      }
+
+      .h2-shop {
+        color: #fff;
+      }
+
+      .item-price {
+        color: #ffd700;
+        font-weight: bold;
+      }
+
+      .shop-message {
+        position: absolute;
+        top: 20%;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #fff;
+        background-color: rgba(0, 0, 0, 0.8);
+        padding: 10px 20px;
+        border-radius: 5px;
+        font-size: 20px;
+        display: none;
+      }
+
+      #chestGif {
+        position: absolute;
+        bottom: 260px;
+        width: 240px;
+
+        z-index: 1;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      #tooltip,
+      #tooltip2,
+      #tooltip3,
+      #tooltip4,
+      #tooltip5 {
+        position: absolute;
+        bottom: 70px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: rgba(0, 0, 0, 0.7);
+        font-size: 40px;
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        z-index: 1000;
+      }
+
+      #blur-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        transition: all 1s;
+      }
+
+      .blur-background {
+        filter: blur(12px);
+      }
+
+      #inventory {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        width: 53vh;
+        height: 84vh;
+        background: url("/assets/inventory.jpg") center / cover no-repeat;
+        z-index: 1001;
+        background-color: rgba(255, 255, 255, 0.2);
+        transform: translate(-50%, -50%);
+        display: none;
+      }
+
+      .hero-name {
+        position: absolute;
+        font-size: 6vh;
+        padding-top: 2vh;
+        padding-left: 20vh;
+        font-family: "Gill Sans", "Gill Sans MT", Calibri, "Trebuchet MS",
+          sans-serif;
+        color: rgb(33, 92, 152);
+      }
+
+      .stats {
+        position: relative;
+        margin-top: 34vh;
+        padding-left: 2vh;
+        background-color: rgba(255, 255, 255, 0.5);
+        color: rgb(35, 35, 35);
+      }
+
+      h2 {
+        font-size: 2vh;
+        font-family: "Lucida Sans", "Lucida Sans Regular", "Lucida Grande",
+          "Lucida Sans Unicode", Geneva, Verdana, sans-serif;
+      }
+
+      .eqipment {
+        padding-top: 5vh;
+        padding-left: 44vh;
+      }
+
+      .inventory-items {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        justify-content: center;
+        text-align: center;
+        top: 30%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: #00000090;
+        width: 100%;
+        height: 20%;
+      }
+
+      .inv-items {
+        position: relative;
+        display: flex;
+        flex-direction: row;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .inv-item {
+        color: #fff;
+        padding: 5px 10px;
+        background-color: rgba(255, 255, 255, 0.2);
+        border-radius: 5px;
+        cursor: pointer;
+      }
+
+      .inv-item:hover {
+        background-color: rgba(255, 255, 255, 0.4);
+      }
+
+      .menu {
+        position: fixed;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        top: 50%;
+        left: 50%;
+        width: 60vh;
+        height: 40vh;
+        background-color: rgba(43, 40, 40, 0.9);
+        z-index: 5001;
+        transform: translate(-50%, -50%);
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        display: none;
+      }
+
+      .menu__list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        text-align: center;
+      }
+
+      .menu__item {
+        margin: 5vh 0;
+      }
+
+      .menu__item a {
+        display: inline-block;
+        width: 100%;
+        padding: 1vh;
+        font-size: 3vh;
+        color: #fff;
+        text-decoration: none;
+        background-color: #3a3a3a;
+        border-radius: 5px;
+        transition: background-color 0.3s ease;
+      }
+
+      .menu__item a:hover {
+        background-color: #575757;
+      }
+
+      .sideHelp {
+        display: block;
+        position: absolute;
+        display: flex;
+        top: 10vh;
+        right: 10vh;
+        z-index: 1;
+      }
+
+      .sideInfo {
+        font-size: 2vh;
+        color: rgb(255, 255, 255);
+      }
+
+      #fight-mode {
+        position: fixed;
+        width: 100vh;
+        height: 100vh;
+        background: url("/assets/arena1.svg") left / cover no-repeat;
+        z-index: 2005;
+        display: none;
+        transition: background-color 0.5s ease;
+      }
+
+      #fight-mode.magic-effect {
+        background-color: rgba(0, 0, 0, 0.8);
+      }
+
+      .arena1 {
+        position: relative;
+        display: flex;
+        width: 100%;
+        height: 100%;
+      }
+
+      #hero-tactic,
+      #hero-right-punch-tactic {
+        position: absolute;
+        bottom: 30vh;
+        width: 40vh;
+        left: 10vh;
+        height: auto;
+        z-index: 4;
+        transition: transform 0.3s ease-out;
+      }
+
+      #enemy-tactic,
+      #enemy-attack {
+        position: absolute;
+        bottom: 26vh;
+        right: 0vh;
+        width: 50vh;
+        height: auto;
+        z-index: 2;
+        transition: transform 0.3s ease-out;
+      }
+
+      .hero-knockback {
+        transform: translateX(-30px);
+      }
+
+      .enemy-knockback {
+        transform: translateX(30px);
+      }
+
+      .fight-inform {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+      }
+
+      #hero-hp-tactic,
+      #hero-mana-tactic {
+        position: absolute;
+        display: flex;
+        flex-direction: row;
+        bottom: 16vh;
+        left: 17vh;
+        background-color: antiquewhite;
+        z-index: 2;
+        padding: 5px 10px;
+        border-radius: 5px;
+      }
+
+      #hero-mana-tactic {
+        bottom: 12vh;
+        background-color: #4169e1;
+        color: white;
+      }
+
+      .fight-log {
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        bottom: 26vh;
+        left: -300px;
+        background-color: rgba(0, 0, 0, 0.617);
+        z-index: 2;
+        padding: 10px;
+        max-height: 200px;
+        overflow-y: auto;
+        width: 250px;
+      }
+
+      .fight-actions {
+        position: absolute;
+        bottom: 5vh;
+        left: 17vh;
+        display: flex;
+        gap: 10px;
+      }
+
+      .fight-actions button {
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+        background-color: #4a4a4a;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        transition: background-color 0.3s;
+      }
+
+      .fight-actions button:hover:not(:disabled) {
+        background-color: #666;
+      }
+
+      .fight-actions button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      #potionBtn {
+        background-color: #ff6b6b;
+      }
+
+      #potionBtn:hover:not(:disabled) {
+        background-color: #ff5252;
+      }
+
+      #shieldBtn {
+        background-color: #4ecdc4;
+      }
+
+      #shieldBtn:hover:not(:disabled) {
+        background-color: #45b7aa;
+      }
+
+      #magicBtn {
+        background-color: #7950f2;
+      }
+
+      #magicBtn:hover:not(:disabled) {
+        background-color: #6741d9;
+      }
+
+      .shield-active {
+        box-shadow: 0 0 20px 5px rgba(78, 205, 196, 0.8);
+      }
+
+      .magic-animation {
+        animation: magicPulse 1s ease-in-out;
+      }
+
+      @keyframes magicPulse {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.2);
+        }
+      }
+
+      p {
+        color: aliceblue;
+        font-size: 20px;
+      }
+    </style>
   </head>
   <body>
     <div class="app">
@@ -64,11 +545,12 @@
         </div>
 
         <div id="shop-inside" class="hidden">
+          <div class="shop-message"></div>
           <div class="items">
-            <div class="hp-item">
-              <h2 class="h2-shop">Hp</h2>
+            <div class="hp-item" data-item="potion">
+              <h2 class="h2-shop">Health Potion</h2>
               <div class="hp"></div>
-              <p>100c</p>
+              <p class="item-price">100c</p>
             </div>
           </div>
         </div>
@@ -79,13 +561,9 @@
             <h2 id="hero-attack">⚔️ Attack - 5</h2>
             <h2 id="hero-hp">❤️ Hp - 15</h2>
             <h2 id="hero-gold">💰 Gold - 0</h2>
+            <h2 id="hero-mana">✨ Mana - 100</h2>
+            <h2 id="hero-potions">🧪 Potions - 0</h2>
           </div>
-          <!--         <div class="eqipment">
-          <div class="weapon">
-            <img id="fist" class="weapon" src="assets/fist1.svg" alt="item" />
-          </div>
-          <div class="armor"></div>
-        </div> -->
 
           <img
             class="hero-inventory"
@@ -95,9 +573,7 @@
 
           <div class="inventory-items">
             <h2 class="h2-shop">Inventory</h2>
-            <div class="inv-items">
-              <div id="inv-item">empty</div>
-            </div>
+            <div class="inv-items" id="inv-items-container"></div>
           </div>
         </div>
 
@@ -142,9 +618,15 @@
           <div class="fight-inform">
             <div class="fight-log"></div>
             <div id="hero-hp-tactic"></div>
+            <div id="hero-mana-tactic"></div>
           </div>
 
-          <button id="attackBtn">Атаковать</button>
+          <div class="fight-actions">
+            <button id="attackBtn">Атаковать</button>
+            <button id="potionBtn">Эликсир</button>
+            <button id="shieldBtn">Защита</button>
+            <button id="magicBtn">Магия</button>
+          </div>
         </div>
         <canvas
           id="rainCanvas"

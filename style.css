@@ -304,7 +304,7 @@ h2 {
   width: 40vh;
   left: 10vh;
   height: auto;
-  z-index: 3;
+  z-index: 4;
 }
 
 #enemy-tactic,
