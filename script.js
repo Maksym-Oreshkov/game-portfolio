@@ -1,79 +1,150 @@
 "use strict";
 
+// Refactored: consolidated constants, helpers, state, and event handlers
+// Notes:
+// - Merged duplicated key handlers into single listeners
+// - Extracted helpers for rect/overlap, tooltip range, audio control, UI toggling
+// - Replaced magic numbers with named constants
+// - Fixed missing `attackBtn` reference (now queried)
+// - Removed unused random* variables
+// - Centralized inventory updates and fight state resets
+// - Ensured consistent show/hide via classList and style usage
+
 document.addEventListener("DOMContentLoaded", () => {
-  const heroStand = document.getElementById("hero-stand");
-  const heroStandTc = document.getElementById("hero-tactic");
-  const heroPunchTc = document.getElementById("hero-right-punch-tactic");
-  const heroRunRight = document.getElementById("hero-run-right");
-  const heroRunLeft = document.getElementById("hero-run-left");
-  const heroRightPunch = document.getElementById("hero-right-punch");
-  const enemy = document.getElementById("enemy");
-  const enemyTc = document.getElementById("enemy-tactic");
-  const enemyAtkTc = document.getElementById("enemy-attack");
-  const game = document.getElementById("game");
-  const tooltip3 = document.getElementById("tooltip3");
-  const tooltip4 = document.getElementById("tooltip4");
-  const tooltip5 = document.getElementById("tooltip5");
-  const chestGif = document.getElementById("chestGif");
-  const shop = document.getElementById("shop");
-  const insideShop = document.getElementById("shop-inside");
-  const inventory = document.getElementById("inventory");
-  const blurContainer = document.getElementById("blur-container");
+  // ===== DOM =====
+  const $ = (id) => document.getElementById(id);
+  const heroStand = $("hero-stand");
+  const heroStandTc = $("hero-tactic");
+  const heroPunchTc = $("hero-right-punch-tactic");
+  const heroRunRight = $("hero-run-right");
+  const heroRunLeft = $("hero-run-left");
+  const heroRightPunch = $("hero-right-punch");
+  const enemy = $("enemy");
+  const enemyTc = $("enemy-tactic");
+  const enemyAtkTc = $("enemy-attack");
+  const game = $("game");
+  const tooltip3 = $("tooltip3");
+  const tooltip4 = $("tooltip4");
+  const tooltip5 = $("tooltip5");
+  const chestGif = $("chestGif");
+  const shop = $("shop");
+  const insideShop = $("shop-inside");
+  const inventory = $("inventory");
+  const blurContainer = $("blur-container");
+  const fightMode = $("fight-mode");
+  const invItemsContainer = $("inv-items-container");
+
   const showMenu = document.querySelector(".menu");
   const restartBtn = document.querySelector(".restart");
   const sideInfoElement = document.querySelector(".sideInfo");
   const sideHelpElement = document.querySelector(".sideHelp");
-  const fightMode = document.getElementById("fight-mode");
   const fightLog = document.querySelector(".fight-log");
   const shopMessage = document.querySelector(".shop-message");
-  const invItemsContainer = document.getElementById("inv-items-container");
 
-  // Новые элементы для боевой системы
-  const potionBtn = document.getElementById("potionBtn");
-  const shieldBtn = document.getElementById("shieldBtn");
-  const magicBtn = document.getElementById("magicBtn");
+  const shopHpItem = document.querySelector(".hp-item");
+  const attackBtn = document.getElementById("attackBtn"); // existed in code but not queried
+  const potionBtn = $("potionBtn");
+  const shieldBtn = $("shieldBtn");
+  const magicBtn = $("magicBtn");
 
+  // ===== Constants =====
+  const VIEWPORT_WIDTH = window.innerWidth;
+  const MAX_BACKGROUND_X = -4000;
+  const BASE_SPEED = 5;
+  const SPRINT_SPEED = 8;
+  const MIN_DISTANCE = 600;
+  const MAX_DISTANCE = 4000;
+  const PUNCH_DURATION = 500; // ms
+  const ENEMY_KNOCKBACK_DELAY = 1000; // ms
+  const ENEMY_RECOVER_DELAY = 300; // ms
+  const HERO_KNOCKBACK_DELAY = 2000; // ms
+  const HERO_RECOVER_DELAY = 300; // ms
+  const HERO_TURN_DELAY_AFTER_ENEMY = 500; // ms
+  const ENEMY_TURN_DELAY_AFTER_HERO = 500; // ms
+  const MAGIC_ANIM_DURATION = 1000; // ms
+
+  const KEYS = {
+    LEFT: ["ArrowLeft", "Left"],
+    RIGHT: ["ArrowRight", "Right"],
+    SHIFT: ["Shift"],
+    SPACE: [" "],
+    ENTER: ["Enter"],
+    ESC: ["Escape", "esc"],
+    INVENTORY: ["i", "I", "ш", "Ш"],
+  };
+
+  // ===== Audio =====
+  const punchSound = new Audio("audio/punch-sound.mp3");
+  const runSound = new Audio("audio/running.mp3");
+  const mainAudio = new Audio("audio/main.mp3");
+  runSound.loop = true;
+
+  // ===== Helpers =====
+  const randPlace = (min, max) =>
+    Math.trunc(Math.random() * (max - min + 1) + min);
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(v, hi));
+
+  const getRect = (el) => el.getBoundingClientRect();
+  const overlaps = (a, b) =>
+    a.right > b.left &&
+    a.left < b.right &&
+    a.bottom > b.top &&
+    a.top < b.bottom;
+
+  const inRange = (x, rangeStart, rangeWidth) =>
+    x >= rangeStart && x <= rangeStart + rangeWidth;
+
+  const show = (el) => (el.style.display = "block");
+  const hide = (el) => (el.style.display = "none");
+
+  const addHidden = (el) => el.classList.add("hidden");
+  const removeHidden = (el) => el.classList.remove("hidden");
+
+  const withBlur = (enabled) => {
+    blurContainer.classList.toggle("blur-background", enabled);
+  };
+
+  const playOnce = (audio) => {
+    if (audio.paused) audio.play();
+  };
+  const stopAndReset = (audio) => {
+    if (!audio.paused) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+  };
+
+  const showShopFlash = (message, type) => {
+    shopMessage.textContent = message;
+    shopMessage.style.color = type === "success" ? "#4CAF50" : "#f44336";
+    shopMessage.style.display = "block";
+    setTimeout(() => (shopMessage.style.display = "none"), 2000);
+  };
+
+  const updateSideInfo = (amount) => {
+    sideInfoElement.textContent = `💰 +${amount} Gold`;
+    sideHelpElement.style.display = "block";
+    setTimeout(() => (sideHelpElement.style.display = "none"), 3000);
+  };
+
+  // ===== World State =====
   let heroX = 0;
-  let hasWeapon = false;
-
-  const baseSpeed = 5;
-  let heroSpeed = baseSpeed;
-  const sprintSpeed = 8;
+  let backgroundX = 0;
 
   let movingRight = false;
   let movingLeft = false;
   let punching = false;
+  let heroSpeed = BASE_SPEED;
 
-  let backgroundX = 0;
-
-  const viewportWidth = window.innerWidth;
-  const maxBackgroundX = -4000;
-
-  const punchSound = new Audio("audio/punch-sound.mp3");
-  const runSound = new Audio("audio/running.mp3");
-  const mainAudio = new Audio("audio/main.mp3");
-
-  runSound.loop = true;
-
-  let minDistance = 600;
-  let maxDistance = 4000;
-
-  function getRandomPlace(min, max) {
-    return Math.trunc(Math.random() * (max - min + 100) + min);
-  }
-
-  let randomEnemyPlace = getRandomPlace(minDistance, maxDistance);
-  let randomItemPlace = getRandomPlace(minDistance, maxDistance);
-  let randomShopePlace = getRandomPlace(minDistance, maxDistance);
-
-  const enemyX = getRandomPlace(minDistance, maxDistance);
-  const itemX = getRandomPlace(minDistance, maxDistance);
-  const shopX = getRandomPlace(minDistance, maxDistance);
+  const enemyX = randPlace(MIN_DISTANCE, MAX_DISTANCE);
+  const itemX = randPlace(MIN_DISTANCE, MAX_DISTANCE);
+  const shopX = randPlace(MIN_DISTANCE, MAX_DISTANCE);
 
   let tooltip3Hidden = false;
   let tooltip4Hidden = false;
+  let isChestOpen = false;
 
-  // Статистика игрока
+  // ===== Hero / Enemy Stats =====
   const heroStats = {
     name: "Gra'marh",
     attack: 5,
@@ -85,7 +156,6 @@ document.addEventListener("DOMContentLoaded", () => {
     potions: 0,
   };
 
-  // Статистика врага
   const enemyStats = {
     name: "Darkling",
     attack: 3,
@@ -93,362 +163,121 @@ document.addEventListener("DOMContentLoaded", () => {
     maxHp: 20,
   };
 
-  // Боевые переменные
+  // ===== Fight State =====
   let heroTurn = false;
   let isInFightMode = false;
   let potionUsedInBattle = false;
   let shieldActive = false;
   let magicSpellsUsed = 0;
 
+  // ===== UI =====
+  function showHero(state) {
+    [heroStand, heroRunRight, heroRunLeft, heroRightPunch].forEach(addHidden);
+    if (state === "stand") removeHidden(heroStand);
+    else if (state === "right") removeHidden(heroRunRight);
+    else if (state === "left") removeHidden(heroRunLeft);
+    else if (state === "punch") removeHidden(heroRightPunch);
+  }
+
   function moveHero() {
     if (movingRight && !punching) {
-      if (heroX < viewportWidth / 2 || backgroundX <= maxBackgroundX) {
+      if (heroX < VIEWPORT_WIDTH / 2 || backgroundX <= MAX_BACKGROUND_X)
         heroX += heroSpeed;
-      } else {
-        backgroundX = Math.max(backgroundX - heroSpeed, maxBackgroundX);
+      else {
+        backgroundX = Math.max(backgroundX - heroSpeed, MAX_BACKGROUND_X);
         game.style.backgroundPositionX = `${backgroundX}px`;
       }
       showHero("right");
     } else if (movingLeft && !punching) {
-      if (heroX > viewportWidth / 2 || backgroundX >= 0) {
-        heroX -= heroSpeed;
-      } else {
+      if (heroX > VIEWPORT_WIDTH / 2 || backgroundX >= 0) heroX -= heroSpeed;
+      else {
         backgroundX = Math.min(backgroundX + heroSpeed, 0);
         game.style.backgroundPositionX = `${backgroundX}px`;
       }
       showHero("left");
     }
 
-    heroX = Math.max(heroX, 0);
-    heroX = Math.min(heroX, viewportWidth - heroStand.width);
+    heroX = clamp(heroX, 0, VIEWPORT_WIDTH - heroStand.width);
 
-    heroStand.style.left = `${heroX}px`;
-    heroRunRight.style.left = `${heroX}px`;
-    heroRunLeft.style.left = `${heroX}px`;
-    heroRightPunch.style.left = `${heroX}px`;
+    // sync positions
+    [heroStand, heroRunRight, heroRunLeft, heroRightPunch].forEach(
+      (el) => (el.style.left = `${heroX}px`)
+    );
 
     const enemyViewportX = enemyX + backgroundX;
-    enemy.style.left = `${enemyViewportX}px`;
-
     const itemViewportX = itemX + backgroundX;
-    chestGif.style.left = `${itemViewportX}px`;
-
     const shopViewportX = shopX + backgroundX;
+
+    enemy.style.left = `${enemyViewportX}px`;
+    chestGif.style.left = `${itemViewportX}px`;
     shop.style.left = `${shopViewportX}px`;
 
-    checkTooltip3Position();
-    checkTooltip4Position();
+    // tooltips
+    updateTooltipRange(
+      tooltip3,
+      tooltip3Hidden,
+      enemyX + backgroundX - 200,
+      200
+    );
+    updateTooltipRange(
+      tooltip4,
+      tooltip4Hidden,
+      itemX + backgroundX - 300,
+      200
+    );
 
-    checkItemProximity();
-    checkEnemyProximity();
-    checkShopProximity();
-
+    // proximity checks (side effects triggered on key handlers)
     requestAnimationFrame(moveHero);
   }
 
-  function checkTooltip3Position() {
-    if (tooltip3Hidden) return;
-    const tooltip3PositionX = enemyX + backgroundX - 200;
-
-    if (heroX >= tooltip3PositionX && heroX <= tooltip3PositionX + 200) {
-      tooltip3.classList.remove("hidden");
-    } else {
-      tooltip3.classList.add("hidden");
-    }
+  function updateTooltipRange(tooltipEl, hiddenFlag, startX, width) {
+    if (hiddenFlag) return;
+    const shouldShow = inRange(heroX, startX, width);
+    tooltipEl.classList.toggle("hidden", !shouldShow);
   }
 
-  function checkTooltip4Position() {
-    if (tooltip4Hidden) return;
-
-    const tooltip4PositionX = itemX + backgroundX - 300;
-
-    if (heroX >= tooltip4PositionX && heroX <= tooltip4PositionX + 200) {
-      tooltip4.classList.remove("hidden");
-    } else {
-      tooltip4.classList.add("hidden");
-    }
-  }
-
-  function checkItemProximity() {
-    const heroRect = heroStand.getBoundingClientRect();
-    const itemRect = chestGif.getBoundingClientRect();
-
-    return (
-      heroRect.right > itemRect.left &&
-      heroRect.left < itemRect.right &&
-      heroRect.bottom > itemRect.top &&
-      heroRect.top < itemRect.bottom
-    );
-  }
-
-  function checkEnemyProximity() {
-    const heroRect = heroStand.getBoundingClientRect();
-    const enemyRect = enemy.getBoundingClientRect();
-
-    return (
-      heroRect.right > enemyRect.left &&
-      heroRect.left < enemyRect.right &&
-      heroRect.bottom > enemyRect.top &&
-      heroRect.top < enemyRect.bottom
-    );
-  }
-
-  function checkShopProximity() {
-    const heroRect = heroStand.getBoundingClientRect();
-    const shopRect = shop.getBoundingClientRect();
-
-    return (
-      heroRect.right > shopRect.left &&
-      heroRect.left < shopRect.right &&
-      heroRect.bottom > shopRect.top &&
-      heroRect.top < shopRect.bottom
-    );
-  }
-
-  function showHero(state) {
-    heroStand.classList.add("hidden");
-    heroRunRight.classList.add("hidden");
-    heroRunLeft.classList.add("hidden");
-    heroRightPunch.classList.add("hidden");
-
-    if (state === "stand") {
-      heroStand.classList.remove("hidden");
-    } else if (state === "right") {
-      heroRunRight.classList.remove("hidden");
-    } else if (state === "left") {
-      heroRunLeft.classList.remove("hidden");
-    } else if (state === "punch") {
-      heroRightPunch.classList.remove("hidden");
-    }
-  }
+  const nearItem = () => overlaps(getRect(heroStand), getRect(chestGif));
+  const nearEnemy = () => overlaps(getRect(heroStand), getRect(enemy));
+  const nearShop = () => overlaps(getRect(heroStand), getRect(shop));
 
   function punchHero() {
-    if (!punching) {
-      punching = true;
-      punchSound.play();
-      showHero("punch");
-      setTimeout(() => {
-        punching = false;
-        if (!movingRight && !movingLeft) {
-          showHero("stand");
-        }
-      }, 500);
-    }
+    if (punching) return;
+    punching = true;
+    punchSound.play();
+    showHero("punch");
+    setTimeout(() => {
+      punching = false;
+      if (!movingRight && !movingLeft) showHero("stand");
+    }, PUNCH_DURATION);
   }
 
   function startRunSound() {
-    if (runSound.paused) {
-      runSound.play();
-    }
+    playOnce(runSound);
   }
-
   function stopRunSound() {
-    if (!runSound.paused) {
-      runSound.pause();
-      runSound.currentTime = 0;
-    }
+    stopAndReset(runSound);
   }
 
-  // Обработчики магазина
-  document.querySelector(".hp-item").addEventListener("click", function () {
-    if (heroStats.gold >= 100) {
-      heroStats.gold -= 100;
-      heroStats.potions += 1;
-      updateInventory();
-      setLocalStorage();
-      showShopMessage("The elixir has been purchased!", "success");
-    } else {
-      showShopMessage("Not enough gold!", "error");
-    }
-  });
-
-  function showShopMessage(message, type) {
-    shopMessage.textContent = message;
-    shopMessage.style.color = type === "success" ? "#4CAF50" : "#f44336";
-    shopMessage.style.display = "block";
-    setTimeout(() => {
-      shopMessage.style.display = "none";
-    }, 2000);
-  }
-
-  document.addEventListener("keydown", (e) => {
-    if (isInFightMode && e.key !== "Escape") {
-      return;
-    }
-
-    if (e.key === "Shift") {
-      heroSpeed = sprintSpeed;
-    }
-
-    if (e.key === "ArrowRight" || e.key === "Right") {
-      if (!movingRight && !movingLeft) {
-        startRunSound();
-      }
-      movingRight = true;
-      movingLeft = false;
-    } else if (e.key === "ArrowLeft" || e.key === "Left") {
-      if (!movingRight && !movingLeft) {
-        startRunSound();
-      }
-      movingLeft = true;
-      movingRight = false;
-    } else if (e.key === " ") {
-      punchHero();
-    } else if (e.key === "Enter") {
-      if (checkEnemyProximity()) {
-        isInFightMode = true;
-        tooltip3.classList.add("hidden");
-        tooltip3Hidden = true;
-        mainAudio.play();
-        fightMode.style.display = "block";
-        blurContainer.classList.add("blur-background");
-        startFight();
-      }
-    }
-  });
-
-  document.addEventListener("keyup", (e) => {
-    if (isInFightMode && e.key !== "Escape") {
-      return;
-    }
-
-    if (e.key === "Shift") {
-      heroSpeed = baseSpeed;
-    }
-
-    if (e.key === "ArrowRight" || e.key === "Right") {
-      movingRight = false;
-      if (!movingLeft) {
-        stopRunSound();
-      }
-    } else if (e.key === "ArrowLeft" || e.key === "Left") {
-      movingLeft = false;
-      if (!movingRight) {
-        stopRunSound();
-      }
-    }
-
-    if (!movingRight && !movingLeft && !punching) {
-      showHero("stand");
-    }
-  });
-
-  document.addEventListener("keydown", function (e) {
-    if (
-      (e.key === "i" || e.key === "I" || e.key === "ш" || e.key === "Ш") &&
-      !isInFightMode
-    ) {
-      if (
-        inventory.style.display === "none" ||
-        inventory.style.display === ""
-      ) {
-        inventory.style.display = "block";
-        blurContainer.classList.add("blur-background");
-      } else {
-        inventory.style.display = "none";
-        blurContainer.classList.remove("blur-background");
-      }
-    }
-  });
-
-  document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape" || e.key === "esc") {
-      const isAnyMenuOpen =
-        inventory.style.display === "block" ||
-        insideShop.style.display === "block" ||
-        showMenu.style.display === "block";
-      if (isAnyMenuOpen) {
-        showMenu.style.display = "none";
-        inventory.style.display = "none";
-        insideShop.style.display = "none";
-        blurContainer.classList.remove("blur-background");
-      } else {
-        showMenu.style.display = "block";
-        blurContainer.classList.add("blur-background");
-      }
-    }
-  });
-
-  function renderSideInfo(amount) {
-    sideInfoElement.textContent = `💰 +${amount} Gold`;
-    sideHelpElement.style.display = "block";
-
-    setTimeout(() => {
-      sideHelpElement.style.display = "none";
-    }, 3000);
-  }
-
-  let isChestOpen = false;
-
-  document.addEventListener("keydown", function (e) {
-    if (e.key === "Enter") {
-      if (!isChestOpen && checkItemProximity()) {
-        tooltip4.classList.add("hidden");
-        tooltip4Hidden = true;
-        openChest();
-
-        isChestOpen = true;
-        setTimeout(() => {
-          addGold(100);
-        }, 1000);
-        setTimeout(() => {
-          chestGif.classList.add("hidden");
-        }, 2000);
-      }
-    }
-  });
-
-  function openChest() {
-    chestGif.src = "assets/chest_opened.gif";
-  }
-
-  document.addEventListener("keydown", function (e) {
-    if (e.key === "Enter" && !isInFightMode) {
-      if (checkShopProximity()) {
-        if (
-          insideShop.style.display === "none" ||
-          insideShop.style.display === ""
-        ) {
-          insideShop.style.display = "block";
-          blurContainer.classList.add("blur-background");
-        } else {
-          insideShop.style.display = "none";
-          blurContainer.classList.remove("blur-background");
-        }
-      }
-    }
-  });
-
+  // ===== Inventory & Storage =====
   function updateInventory() {
-    document.getElementById(
-      "hero-attack"
-    ).textContent = `⚔️ Attack - ${heroStats.attack}`;
-    document.getElementById(
-      "hero-hp"
-    ).textContent = `❤️ Hp - ${heroStats.hp}/${heroStats.maxHp}`;
-    document.getElementById(
+    $("hero-attack").textContent = `⚔️ Attack - ${heroStats.attack}`;
+    $("hero-hp").textContent = `❤️ Hp - ${heroStats.hp}/${heroStats.maxHp}`;
+    $(
       "hero-hp-tactic"
     ).textContent = `❤️ Hp - ${heroStats.hp}/${heroStats.maxHp}`;
-    document.getElementById(
-      "hero-gold"
-    ).textContent = `💰 Gold - ${heroStats.gold}`;
-    document.getElementById(
+    $("hero-gold").textContent = `💰 Gold - ${heroStats.gold}`;
+    $(
       "hero-mana"
     ).textContent = `✨ Mana - ${heroStats.mana}/${heroStats.maxMana}`;
-    document.getElementById(
+    $(
       "hero-mana-tactic"
     ).textContent = `✨ Mana - ${heroStats.mana}/${heroStats.maxMana}`;
-    document.getElementById(
-      "hero-potions"
-    ).textContent = `🧪 Potions - ${heroStats.potions}`;
-
-    // Обновляем инвентарь
+    $("hero-potions").textContent = `🧪 Potions - ${heroStats.potions}`;
     updateInventoryDisplay();
   }
 
   function updateInventoryDisplay() {
     invItemsContainer.innerHTML = "";
-
     if (heroStats.potions > 0) {
       for (let i = 0; i < heroStats.potions; i++) {
         const potionItem = document.createElement("div");
@@ -467,149 +296,163 @@ document.addEventListener("DOMContentLoaded", () => {
   function addGold(amount) {
     heroStats.gold += amount;
     updateInventory();
-    setLocalStorage();
-    renderSideInfo(amount);
-  }
-
-  function setLocalStorage() {
     localStorage.setItem("heroStats", JSON.stringify(heroStats));
+    updateSideInfo(amount);
   }
 
-  function getLocalStorage() {
+  function loadStats() {
     const data = localStorage.getItem("heroStats");
-    if (data) {
-      Object.assign(heroStats, JSON.parse(data));
-      updateInventory();
-    } else {
-      console.log("No data found in localStorage");
-    }
+    if (data) Object.assign(heroStats, JSON.parse(data));
+    updateInventory();
   }
 
-  restartBtn.addEventListener("click", function () {
+  // ===== Shop =====
+  shopHpItem.addEventListener("click", () => {
+    if (heroStats.gold >= 100) {
+      heroStats.gold -= 100;
+      heroStats.potions += 1;
+      updateInventory();
+      localStorage.setItem("heroStats", JSON.stringify(heroStats));
+      showShopFlash("The elixir has been purchased!", "success");
+    } else {
+      showShopFlash("Not enough gold!", "error");
+    }
+  });
+
+  // ===== Keyboard Handling =====
+  const onKeyDown = (e) => {
+    // Block inputs during fight mode except ESC
+    if (isInFightMode && !KEYS.ESC.includes(e.key)) return;
+
+    if (KEYS.SHIFT.includes(e.key)) heroSpeed = SPRINT_SPEED;
+
+    if (KEYS.RIGHT.includes(e.key)) {
+      if (!movingRight && !movingLeft) startRunSound();
+      movingRight = true;
+      movingLeft = false;
+    } else if (KEYS.LEFT.includes(e.key)) {
+      if (!movingRight && !movingLeft) startRunSound();
+      movingLeft = true;
+      movingRight = false;
+    } else if (KEYS.SPACE.includes(e.key)) {
+      punchHero();
+    } else if (KEYS.ENTER.includes(e.key)) {
+      if (nearEnemy()) {
+        // start fight
+        isInFightMode = true;
+        tooltip3.classList.add("hidden");
+        tooltip3Hidden = true;
+        mainAudio.play();
+        show(fightMode);
+        withBlur(true);
+        startFight();
+      } else if (!isInFightMode && nearItem() && !isChestOpen) {
+        // open chest
+        tooltip4.classList.add("hidden");
+        tooltip4Hidden = true;
+        openChest();
+        isChestOpen = true;
+        setTimeout(() => addGold(100), 1000);
+        setTimeout(() => chestGif.classList.add("hidden"), 2000);
+      } else if (!isInFightMode && nearShop()) {
+        // toggle shop
+        const opening =
+          insideShop.style.display === "none" ||
+          insideShop.style.display === "";
+        if (opening) {
+          show(insideShop);
+          withBlur(true);
+        } else {
+          hide(insideShop);
+          withBlur(false);
+        }
+      }
+    } else if (KEYS.INVENTORY.includes(e.key) && !isInFightMode) {
+      const opening =
+        inventory.style.display === "none" || inventory.style.display === "";
+      if (opening) {
+        show(inventory);
+        withBlur(true);
+      } else {
+        hide(inventory);
+        withBlur(false);
+      }
+    } else if (KEYS.ESC.includes(e.key)) {
+      const isAnyMenuOpen =
+        inventory.style.display === "block" ||
+        insideShop.style.display === "block" ||
+        showMenu.style.display === "block";
+      if (isAnyMenuOpen) {
+        hide(showMenu);
+        hide(inventory);
+        hide(insideShop);
+        withBlur(false);
+      } else {
+        show(showMenu);
+        withBlur(true);
+      }
+    }
+  };
+
+  const onKeyUp = (e) => {
+    if (isInFightMode && !KEYS.ESC.includes(e.key)) return;
+    if (KEYS.SHIFT.includes(e.key)) heroSpeed = BASE_SPEED;
+
+    if (KEYS.RIGHT.includes(e.key)) {
+      movingRight = false;
+      if (!movingLeft) stopRunSound();
+    } else if (KEYS.LEFT.includes(e.key)) {
+      movingLeft = false;
+      if (!movingRight) stopRunSound();
+    }
+    if (!movingRight && !movingLeft && !punching) showHero("stand");
+  };
+
+  document.addEventListener("keydown", onKeyDown);
+  document.addEventListener("keyup", onKeyUp);
+
+  // Restart
+  restartBtn.addEventListener("click", () => {
     localStorage.removeItem("heroStats");
     location.reload();
   });
 
-  // Боевая система
-  attackBtn.addEventListener("click", () => {
-    if (heroTurn && isInFightMode) {
-      heroAttack();
-    }
-  });
-
-  potionBtn.addEventListener("click", () => {
-    if (
-      heroTurn &&
-      isInFightMode &&
-      !potionUsedInBattle &&
-      heroStats.potions > 0
-    ) {
-      usePotion();
-    }
-  });
-
-  shieldBtn.addEventListener("click", () => {
-    if (heroTurn && isInFightMode && !shieldActive) {
-      activateShield();
-    }
-  });
-
-  magicBtn.addEventListener("click", () => {
-    if (
-      heroTurn &&
-      isInFightMode &&
-      magicSpellsUsed < 2 &&
-      heroStats.mana >= 30
-    ) {
-      castMagic();
-    }
-  });
-
-  function usePotion() {
-    potionUsedInBattle = true;
-    heroStats.potions--;
-    const healAmount = 50;
-    heroStats.hp = Math.min(heroStats.hp + healAmount, heroStats.maxHp);
-
-    displayFightLog(
-      `${heroStats.name} drank the elixir and was restored ${healAmount} HP!`
-    );
-    updateInventory();
-
-    potionBtn.disabled = true;
-
-    setTimeout(enemyAttack, 1000);
+  // ===== Chest =====
+  function openChest() {
+    chestGif.src = "assets/chest_opened.gif";
   }
 
-  function activateShield() {
-    shieldActive = true;
-    shieldBtn.disabled = true;
+  // ===== Fight System =====
+  const getHeroRandomAttack = () =>
+    Math.trunc(Math.random() * (heroStats.attack + 1));
+  const getEnemyRandomAttack = () =>
+    Math.trunc(Math.random() * (enemyStats.attack + 1));
 
-    heroStandTc.classList.add("shield-active");
-    displayFightLog(`${heroStats.name} поднял щит!`);
-
-    setTimeout(enemyAttack, 1000);
-  }
-
-  function castMagic() {
-    magicSpellsUsed++;
-    heroStats.mana -= 30;
-
-    fightMode.classList.add("magic-effect");
-    heroStandTc.classList.add("magic-animation");
-
-    const magicDamage = Math.floor(Math.random() * 10 + 10);
-    enemyStats.hp -= magicDamage;
-
-    displayFightLog(
-      `${heroStats.name} used magic and inflicted ${magicDamage} урона!`
-    );
-
-    setTimeout(() => {
-      fightMode.classList.remove("magic-effect");
-      heroStandTc.classList.remove("magic-animation");
-    }, 1000);
-
-    if (enemyStats.hp <= 0) {
-      displayFightLog(`${enemyStats.name} побеждён!`);
-      endFight(true);
-      return;
-    }
-
-    updateInventory();
-
-    if (magicSpellsUsed >= 2) {
-      magicBtn.disabled = true;
-    }
-
-    setTimeout(enemyAttack, 1500);
-  }
-
-  function getHeroRandomAttack() {
-    return Math.trunc(Math.random() * (heroStats.attack + 1));
-  }
-
-  function getEnemyRandomAttack() {
-    return Math.trunc(Math.random() * (enemyStats.attack + 1));
+  function displayFightLog(message) {
+    const p = document.createElement("p");
+    p.textContent = message;
+    fightLog.appendChild(p);
+    fightLog.scrollTop = fightLog.scrollHeight;
   }
 
   function startFight() {
     fightMode.classList.remove("hidden");
-    fightMode.style.display = "block";
+    show(fightMode);
     enemy.style.display = "block";
-    blurContainer.classList.add("blur-background");
+    withBlur(true);
     isInFightMode = true;
 
-    // Сброс боевых переменных
+    // reset
     potionUsedInBattle = false;
     shieldActive = false;
     magicSpellsUsed = 0;
 
-    // Включаем/выключаем кнопки
+    // enable/disable buttons
     potionBtn.disabled = heroStats.potions === 0;
     shieldBtn.disabled = false;
     magicBtn.disabled = heroStats.mana < 30;
 
+    fightLog.innerHTML = "";
     displayFightLog("The fight has begun!");
     startHeroTurn();
   }
@@ -632,36 +475,33 @@ document.addEventListener("DOMContentLoaded", () => {
   function heroAttack() {
     heroTurn = false;
 
-    const heroRandomAttack = getHeroRandomAttack();
+    const dmg = getHeroRandomAttack();
 
     heroStandTc.classList.add("hidden");
     heroPunchTc.classList.remove("hidden");
     enemyTc.classList.remove("hidden");
     enemyAtkTc.classList.add("hidden");
 
-    // Отталкивание противника через 1 секунду
     setTimeout(() => {
       enemyTc.classList.add("enemy-knockback");
-      enemyStats.hp -= heroRandomAttack;
-
+      enemyStats.hp -= dmg;
       displayFightLog(
-        `${heroStats.name} attacks ${enemyStats.name} and deals ${heroRandomAttack} damage.`
+        `${heroStats.name} attacks ${enemyStats.name} and deals ${dmg} damage.`
       );
 
-      // Возврат на место
-      setTimeout(() => {
-        enemyTc.classList.remove("enemy-knockback");
-      }, 300);
+      setTimeout(
+        () => enemyTc.classList.remove("enemy-knockback"),
+        ENEMY_RECOVER_DELAY
+      );
 
       if (enemyStats.hp <= 0) {
         displayFightLog(`${enemyStats.name} defeated!`);
         endFight(true);
         return;
       }
-
       updateInventory();
-      setTimeout(enemyAttack, 500);
-    }, 1000);
+      setTimeout(enemyAttack, ENEMY_TURN_DELAY_AFTER_HERO);
+    }, ENEMY_KNOCKBACK_DELAY);
   }
 
   function enemyAttack() {
@@ -670,27 +510,22 @@ document.addEventListener("DOMContentLoaded", () => {
     enemyTc.classList.add("hidden");
     enemyAtkTc.classList.remove("hidden");
 
-    let enemyRandomAttack = getEnemyRandomAttack();
-
-    // Если щит активен, урон уменьшается вдвое
+    let dmg = getEnemyRandomAttack();
     if (shieldActive) {
-      enemyRandomAttack = Math.floor(enemyRandomAttack / 2);
+      dmg = Math.floor(dmg / 2);
       displayFightLog(`The shield absorbed some of the damage!`);
     }
 
-    // Отталкивание героя через 2 секунды
     setTimeout(() => {
       heroStandTc.classList.add("hero-knockback");
-      heroStats.hp -= enemyRandomAttack;
-
+      heroStats.hp -= dmg;
       displayFightLog(
-        `${enemyStats.name} attacks ${heroStats.name} and deals ${enemyRandomAttack} damage.`
+        `${enemyStats.name} attacks ${heroStats.name} and deals ${dmg} damage.`
       );
-
-      // Возврат на место
-      setTimeout(() => {
-        heroStandTc.classList.remove("hero-knockback");
-      }, 300);
+      setTimeout(
+        () => heroStandTc.classList.remove("hero-knockback"),
+        HERO_RECOVER_DELAY
+      );
 
       if (heroStats.hp <= 0) {
         setTimeout(() => {
@@ -699,17 +534,60 @@ document.addEventListener("DOMContentLoaded", () => {
         }, 1000);
         return;
       }
-
       updateInventory();
-      setTimeout(startHeroTurn, 500);
-    }, 2000);
+      setTimeout(startHeroTurn, HERO_TURN_DELAY_AFTER_ENEMY);
+    }, HERO_KNOCKBACK_DELAY);
   }
 
-  function displayFightLog(message) {
-    const newLog = document.createElement("p");
-    newLog.textContent = message;
-    fightLog.appendChild(newLog);
-    fightLog.scrollTop = fightLog.scrollHeight;
+  function usePotion() {
+    potionUsedInBattle = true;
+    heroStats.potions--;
+    const heal = 50;
+    heroStats.hp = Math.min(heroStats.hp + heal, heroStats.maxHp);
+    displayFightLog(
+      `${heroStats.name} drank the elixir and was restored ${heal} HP!`
+    );
+    updateInventory();
+    potionBtn.disabled = true;
+    setTimeout(enemyAttack, 1000);
+  }
+
+  function activateShield() {
+    shieldActive = true;
+    shieldBtn.disabled = true;
+    heroStandTc.classList.add("shield-active");
+    displayFightLog(`${heroStats.name} поднял щит!`);
+    setTimeout(enemyAttack, 1000);
+  }
+
+  function castMagic() {
+    magicSpellsUsed++;
+    heroStats.mana -= 30;
+
+    fightMode.classList.add("magic-effect");
+    heroStandTc.classList.add("magic-animation");
+
+    const magicDamage = Math.floor(Math.random() * 10 + 10);
+    enemyStats.hp -= magicDamage;
+
+    displayFightLog(
+      `${heroStats.name} used magic and inflicted ${magicDamage} урона!`
+    );
+
+    setTimeout(() => {
+      fightMode.classList.remove("magic-effect");
+      heroStandTc.classList.remove("magic-animation");
+    }, MAGIC_ANIM_DURATION);
+
+    if (enemyStats.hp <= 0) {
+      displayFightLog(`${enemyStats.name} побеждён!`);
+      endFight(true);
+      return;
+    }
+
+    updateInventory();
+    if (magicSpellsUsed >= 2) magicBtn.disabled = true;
+    setTimeout(enemyAttack, 1500);
   }
 
   function endFight(heroWon) {
@@ -717,23 +595,47 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (heroWon) {
       addGold(50);
-      // Восстанавливаем немного маны после победы
       heroStats.mana = Math.min(heroStats.mana + 20, heroStats.maxMana);
     } else {
       location.reload();
     }
 
     fightMode.classList.add("hidden");
-    fightMode.style.display = "none";
+    hide(fightMode);
     enemy.style.display = "none";
-    blurContainer.classList.remove("blur-background");
+    withBlur(false);
     mainAudio.pause();
-
-    // Очищаем лог боя
     fightLog.innerHTML = "";
   }
 
+  // ===== Fight Buttons =====
+  attackBtn?.addEventListener("click", () => {
+    if (heroTurn && isInFightMode) heroAttack();
+  });
+  potionBtn.addEventListener("click", () => {
+    if (
+      heroTurn &&
+      isInFightMode &&
+      !potionUsedInBattle &&
+      heroStats.potions > 0
+    )
+      usePotion();
+  });
+  shieldBtn.addEventListener("click", () => {
+    if (heroTurn && isInFightMode && !shieldActive) activateShield();
+  });
+  magicBtn.addEventListener("click", () => {
+    if (
+      heroTurn &&
+      isInFightMode &&
+      magicSpellsUsed < 2 &&
+      heroStats.mana >= 30
+    )
+      castMagic();
+  });
+
+  // ===== Init =====
   moveHero();
   showHero("stand");
-  getLocalStorage();
+  loadStats();
 });

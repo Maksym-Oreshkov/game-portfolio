@@ -117,6 +117,9 @@ html {
 .h2-shop {
   color: #fff;
 }
+.h2 {
+  font-size: 1rem;
+}
 
 .item-price {
   color: #ffd700;
